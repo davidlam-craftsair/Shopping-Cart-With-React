@@ -1,9 +1,9 @@
 // simulate getting products from DataBase
 const products = [
-  { name: "Apples", country: "Italy", cost: 3, instock: 10 },
-  { name: "Oranges", country: "Spain", cost: 4, instock: 3 },
-  { name: "Beans", country: "USA", cost: 2, instock: 5 },
-  { name: "Cabbage", country: "USA", cost: 1, instock: 8 },
+  { id: 1, name: "apples", country: "Italy", cost: 3, instock: 10, displayName: "Apples, Each" },
+  { id: 2, name: "oranges", country: "Spain", cost: 4, instock: 3, displayName: "Navel Oranges, 4lb Bag" },
+  { id: 3, name: "beans", country: "USA", cost: 2, instock: 5, displayName: "Great Value Pinto Beans, 15.5 oz Can" },
+  { id: 4, name: "cabbage", country: "USA", cost: 1, instock: 8, displayName: "Organic Fresh Green Cabbage, Each" },
 ];
 //=========Cart=============
 const Cart = (props) => {
@@ -100,10 +100,29 @@ const Products = (props) => {
   console.log(`Rendering Products ${JSON.stringify(data)}`);
   // Fetch Data
   const addToCart = (e) => {
-    let name = e.target.name;
-    let item = items.filter((item) => item.name == name);
-    console.log(`add to Cart ${JSON.stringify(item)}`);
-    setCart([...cart, ...item]);
+    let id = e.target.id;
+    let itemsFiltered = items.filter((item) => item.id == id);
+    if (itemsFiltered.length == 0) {
+      return;
+    }
+    const itemToCart = itemsFiltered[0];
+    if (itemToCart.instock == 0) {
+      alert("Sorry, the product " + itemToCart.name + " is sold out in the list. \nPlease click restock to replenish the stock first");
+      return;
+    }
+
+    console.log(`add to Cart ${JSON.stringify(itemsFiltered)}`);
+    setCart([...cart, ...itemsFiltered]);
+    // set the items state which should change the
+    const newItems = items.map((item) => {
+      if (item.id === id) {
+        // this item instock should be minus 1
+        item.instock = item.instock - 1;
+      }
+      return item;
+    })
+
+    setItems(newItems);
     //doFetch(query);
   };
   const deleteCartItem = (index) => {
@@ -119,11 +138,13 @@ const Products = (props) => {
     return (
       <li key={index}>
         <div style={{ display: "grid" }}>
-          <Image src={photos[index % 4]} width={70} roundedCircle></Image>
-          <Button variant="primary" size="large" type="submit" onClick={() => addToCart({ target: { name: item.name } })}>
-            {item.name}<br />
-            ${item.cost}<br />
-            stock: {item.instock}
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <Image src={photos[index % 4]} width={70} roundedCircle></Image>
+          </div>
+          <Button variant="light" size="large" type="submit" onClick={() => addToCart({ target: { id: item.id } })}>
+            {item.displayName}<br />
+            price: ${item.cost}<br />
+            current stock: {item.instock}
           </Button>
         </div>
       </li>
@@ -133,7 +154,7 @@ const Products = (props) => {
     return (
       <Accordion.Item key={1 + index} eventKey={1 + index}>
         <Accordion.Header >
-          {item.name}
+          {item.displayName}
         </Accordion.Header>
         <Accordion.Body onClick={() => deleteCartItem(index)}
           eventKey={1 + index}>
@@ -148,7 +169,7 @@ const Products = (props) => {
     let final = cart.map((item, index) => {
       return (
         <div key={index} index={index}>
-          {item.name}
+          {item.displayName}
         </div>
       );
     });
@@ -164,7 +185,7 @@ const Products = (props) => {
   };
   // TODO: implement the restockProducts function
   const restockProducts = (url) => {
-    // add  
+    // this function replenish all the proucts to the predetermined stock quantity
     // get the data from online database
     doFetch(url);
     // essentially a useState setUrl function, which will trigger the useEffect setup function, 
@@ -175,7 +196,10 @@ const Products = (props) => {
     // get the id and restock amount
     const restockData = data.data;
     // set the set state items
-    const newItems = restockData.map(() => {
+    const newItems = restockData.map((i) => {
+      // now construct a list of object name, 
+      const attr = i.attributes;
+      return { name: attr.name, displayName: attr.display_name, country: attr.country, cost: attr.cost, instock: attr.instock }
 
     });
 
